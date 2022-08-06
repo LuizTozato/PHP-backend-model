@@ -5,18 +5,6 @@
     header("Access-Control-Allow-Headers: *");
     header("Content-Type: application/json");  
 
-    //FUNCOES AUXILIARES
-    function resposta($codigo, $ok, $msg){
-
-        http_response_code($codigo);
-        echo (json_encode([
-            'ok' => $ok,
-            'msg' => $msg
-        ]));
-
-        die;
-    };
-
     //1. ACESSANDO BANCO DE DADOS ===========================
     require('db/conexao.php');
 
@@ -36,56 +24,90 @@
 
     //REQUISIÇÃO VINDA POR OPTIONS
     if($_SERVER['REQUEST_METHOD'] === "OPTIONS"){
-        resposta(200, true, '');
+        resposta(200, true, '', '');
     }
-
 
     //REQUISICAO VINDA POR POST
     if($_SERVER['REQUEST_METHOD'] !== "POST"){
-        
-        resposta(400, false, 'Metodo Invalido. Diferente de POST');
-
+        resposta(400, false, 'Metodo Invalido. Diferente de POST', '');
     } else {
 
         //=======================
-        //3. PROCESSANDO CORPO DA REQUISIÇÃO
+        //3. PROCESSANDO CORPO DA REQUISIÇÃO POR POST
         $body = file_get_contents('php://input'); //capturar do json da requisição
         if(!$body){
-            resposta(400, false, "Corpo da requisicao nao encontrado");
+            resposta(400, false, "Corpo da requisicao nao encontrado", '');
         }
 
         $body = json_decode($body);
 
-        $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
-        $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
-        $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
-        $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
-        $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
-        $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
-        $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
+        //FUNCOES CRUD
+        switch($body->acao){
+            case "c":
+                
+                //CREATE
+                $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
+                $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
+                $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
+                $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
+                $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
+                $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
+                $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
+                
+                //controle de input inválido
+                if(!$body->nome || !$body->data_nascimento || !$body->cpf){
+                    resposta(400, false, "Dados Invalidos", '');
+                }
         
-        //controle de input inválido
-        if(!$body->nome || !$body->data_nascimento || !$body->cpf){
-            resposta(400, false, "Dados Invalidos");
-        }
-
-        //=======================
-        //4. INSERINDO DADOS ANTI SQL INJECTION
-        $sql = $pdo->prepare("INSERT INTO tb_clientes VALUES (null,?,?,?,?,?,?,?)");
-
-        $sql->execute(array(
-            $body->nome,
-            $body->data_nascimento,
-            $body->cpf,
-            $body->celular,
-            $body->email,
-            $body->endereco,
-            $body->observacao
-        ));
+                //=======================
+                //4. INSERINDO DADOS ANTI SQL INJECTION
+                $sql = $pdo->prepare("INSERT INTO tb_clientes VALUES (null,?,?,?,?,?,?,?)");
         
-        resposta(200, true, "Cliente cadastrado com sucesso!");
+                $sql->execute(array(
+                    $body->nome,
+                    $body->data_nascimento,
+                    $body->cpf,
+                    $body->celular,
+                    $body->email,
+                    $body->endereco,
+                    $body->observacao
+                ));
+                
+                resposta(200, true, "Cliente cadastrado com sucesso!", '');
+                break;
+
+            case 'r':
+                
+                //READ
+                $sql = $pdo->prepare("SELECT * FROM tb_clientes");
+                $sql->execute();
+                $dados = $sql->fetchAll(PDO::FETCH_OBJ);
+
+                resposta(200, true, "Registros dos clientes lidos com sucesso!", $dados);
+
+                break;
+            case 'u':
+                //algo aqui
+                break;
+            case 'd':
+                //algo aqui
+                break;
+        };
 
     };
 
+    
+    //FUNCOES AUXILIARES ==================
+    function resposta($codigo, $ok, $msg, $dados){
+
+        http_response_code($codigo);
+        echo (json_encode([
+            'ok' => $ok,
+            'msg' => $msg,
+            'dados' => $dados
+        ]));
+
+        die;
+    };
 
 ?>
