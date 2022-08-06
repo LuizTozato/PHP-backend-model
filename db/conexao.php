@@ -1,5 +1,7 @@
 <?php
 
+    require_once(__DIR__."/../cors.php");
+
     //CONFIGURAÇÕES GERAIS
     $servidor = "localhost";
     $usuario = "root";

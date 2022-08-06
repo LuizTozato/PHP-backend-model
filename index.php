@@ -1,12 +1,7 @@
 <?php
 
-    //CORS config
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Headers: *");
-    header("Content-Type: application/json");  
-
     //1. ACESSANDO BANCO DE DADOS ===========================
-    require('db/conexao.php');
+    require_once('db/conexao.php');
 
     //2. CRIANDO TABELA
     $sql = "CREATE TABLE IF NOT EXISTS tb_clientes (
@@ -22,92 +17,148 @@
 
     $pdo->exec($sql);
 
-    //REQUISIÇÃO VINDA POR OPTIONS
-    if($_SERVER['REQUEST_METHOD'] === "OPTIONS"){
-        resposta(200, true, '', '');
-    }
+    //3. PROCESSANDO CORPO DA REQUISIÇÃO POR POST
+    $body = file_get_contents('php://input'); //capturar do json da requisição
 
-    //REQUISICAO VINDA POR POST
-    if($_SERVER['REQUEST_METHOD'] !== "POST"){
-        resposta(400, false, 'Metodo Invalido. Diferente de POST', '');
-    } else {
-
-        //=======================
-        //3. PROCESSANDO CORPO DA REQUISIÇÃO POR POST
-        $body = file_get_contents('php://input'); //capturar do json da requisição
-        if(!$body){
-            resposta(400, false, "Corpo da requisicao nao encontrado", '');
-        }
-
-        $body = json_decode($body);
-
-        //FUNCOES CRUD
-        switch($body->acao){
-            case "c":
-                
-                //CREATE
-                $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
-                $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
-                $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
-                $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
-                $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
-                $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
-                $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
-                
-                //controle de input inválido
-                if(!$body->nome || !$body->data_nascimento || !$body->cpf){
-                    resposta(400, false, "Dados Invalidos", '');
-                }
+    $body = json_decode($body);
+    
+    switch($_SERVER['REQUEST_METHOD']){
+        case "POST":
+            requestPost($body, $pdo);
+            break;
         
-                //=======================
-                //4. INSERINDO DADOS ANTI SQL INJECTION
-                $sql = $pdo->prepare("INSERT INTO tb_clientes VALUES (null,?,?,?,?,?,?,?)");
+        case "GET":
+            requestGet($body, $pdo);
+            break;
+                    
+        case "PUT":
+            requestPut($body, $pdo);
+            break;
         
-                $sql->execute(array(
-                    $body->nome,
-                    $body->data_nascimento,
-                    $body->cpf,
-                    $body->celular,
-                    $body->email,
-                    $body->endereco,
-                    $body->observacao
-                ));
-                
-                resposta(200, true, "Cliente cadastrado com sucesso!", '');
-                break;
-
-            case 'r':
-                
-                //READ
-                $sql = $pdo->prepare("SELECT * FROM tb_clientes");
-                $sql->execute();
-                $dados = $sql->fetchAll(PDO::FETCH_OBJ);
-
-                resposta(200, true, "Registros dos clientes lidos com sucesso!", $dados);
-
-                break;
-            case 'u':
-                //algo aqui
-                break;
-            case 'd':
-                //algo aqui
-                break;
-        };
-
-    };
+        case "DELETE":
+            requestDelete($body, $pdo);
+            break;
 
     
-    //FUNCOES AUXILIARES ==================
-    function resposta($codigo, $ok, $msg, $dados){
+        default:
+            resposta(400, false, 'Metodo Invalido.', '');
+                    
+    }
 
-        http_response_code($codigo);
-        echo (json_encode([
-            'ok' => $ok,
-            'msg' => $msg,
-            'dados' => $dados
-        ]));
+    //=======================
+    //FUNCOES CRUD
+    function requestPost($body, $pdo){
 
-        die;
-    };
+        if($body->id_cliente === ''){
+
+            //CREATE
+            $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
+            $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
+            $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
+            $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
+            $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
+            $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
+            $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
+            
+            //controle de input inválido
+            if(!$body->nome || !$body->data_nascimento || !$body->cpf){
+                resposta(400, false, "Dados Invalidos", '');
+            }
+
+            //=======================
+            //4. INSERINDO DADOS ANTI SQL INJECTION
+            $sql = $pdo->prepare("INSERT INTO tb_clientes VALUES (null,?,?,?,?,?,?,?)");
+
+            $sql->execute(array(
+                $body->nome,
+                $body->data_nascimento,
+                $body->cpf,
+                $body->celular,
+                $body->email,
+                $body->endereco,
+                $body->observacao
+            ));
+            
+            resposta(200, true, "Cliente cadastrado com sucesso!", '');
+        
+        } else {
+            
+            //OBTENDO OS REGISTROS DE 1 ÚNICO CLIENTE POR ID
+            //READ
+            $sql = $pdo->prepare("SELECT * FROM tb_clientes WHERE id_cliente = ?");
+            $sql->execute([$body->id_cliente]);
+            $dados = $sql->fetch(PDO::FETCH_OBJ);
+
+            resposta(200, true, "Registro de 1 único cliente lido com sucesso!", $dados);
+                        
+        }
+
+    }
+
+    function requestGet($body, $pdo){
+
+        //READ
+        $sql = $pdo->prepare("SELECT * FROM tb_clientes");
+        $sql->execute();
+        $dados = $sql->fetchAll(PDO::FETCH_OBJ);
+
+        resposta(200, true, "Registros dos clientes lidos com sucesso!", $dados);
+
+    }
+
+    function requestPut($body, $pdo){
+
+        //UPDATE
+        $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
+        $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
+        $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
+        $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
+        $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
+        $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
+        $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
+        
+        //controle de input inválido
+        if(!$body->nome || !$body->data_nascimento || !$body->cpf){
+            resposta(400, false, "Dados Invalidos", '');
+        }
+
+        //=======================
+        //4. ATUALIZANDO DADOS ANTI SQL INJECTION
+        $sql = $pdo->prepare("UPDATE tb_clientes SET 
+            nome = ?,
+            data_nascimento = ?,
+            cpf = ?,
+            celular = ?,
+            email = ?,
+            endereco = ?,
+            observacao = ?
+            WHERE id_cliente = ?");
+
+        $sql->execute(array(
+            $body->nome,
+            $body->data_nascimento,
+            $body->cpf,
+            $body->celular,
+            $body->email,
+            $body->endereco,
+            $body->observacao,
+            $body->id_cliente
+        ));
+        
+        resposta(200, true, "Cliente atualizado com sucesso!", '');
+    }
+
+    function requestDelete($body, $pdo){
+
+        //=======================
+        //4. ATUALIZANDO DADOS ANTI SQL INJECTION
+        $sql = $pdo->prepare("DELETE FROM tb_clientes 
+            WHERE id_cliente = ?");
+
+        $sql->execute([$body->id_cliente]);
+        
+        resposta(200, true, "Cliente excluído com sucesso!", '');        
+
+    }
 
 ?>
