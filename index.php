@@ -105,7 +105,11 @@
         $sql->execute();
         $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
-        resposta(200, true, "Registros dos clientes lidos com sucesso!", $dados);
+        $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
+        $sql->execute();
+        $total = $sql->fetch(PDO::FETCH_OBJ);
+
+        resposta(200, true, "Registros dos clientes lidos com sucesso!", [$dados,$total]);
 
     }
 
