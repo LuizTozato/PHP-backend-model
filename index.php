@@ -28,7 +28,7 @@
             break;
         
         case "GET":
-            requestGet($body, $pdo);
+            requestGet($pdo);
             break;
                     
         case "PUT":
@@ -95,10 +95,13 @@
 
     }
 
-    function requestGet($body, $pdo){
+    function requestGet($pdo){
+
+        $limit = $_GET['limit'];
+        $offset = $_GET['offset'];
 
         //READ
-        $sql = $pdo->prepare("SELECT * FROM tb_clientes");
+        $sql = $pdo->prepare("SELECT * FROM tb_clientes LIMIT " . $limit . " OFFSET " . $offset);
         $sql->execute();
         $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
@@ -151,6 +154,7 @@
     function requestDelete($body, $pdo){
 
         //=======================
+        //DELETE
         //4. ATUALIZANDO DADOS ANTI SQL INJECTION
         $sql = $pdo->prepare("DELETE FROM tb_clientes 
             WHERE id_cliente = ?");
