@@ -97,20 +97,43 @@
 
     function requestGet($pdo){
 
+        $busca = $_GET['busca'];
         $limit = $_GET['limit'];
         $offset = $_GET['offset'];
 
-        //READ
-        $sql = $pdo->prepare("SELECT * FROM tb_clientes LIMIT " . $limit . " OFFSET " . $offset);
-        $sql->execute();
-        $dados = $sql->fetchAll(PDO::FETCH_OBJ);
+        if($busca !== ''){
 
-        $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
-        $sql->execute();
-        $total = $sql->fetch(PDO::FETCH_OBJ);
+            //READ
+            $sql = $pdo->prepare("SELECT * FROM tb_clientes WHERE nome LIKE CONCAT( '%', :nome, '%') OR email LIKE CONCAT( '%', :email, '%') LIMIT :limit OFFSET :offset");
+            $sql->bindValue(":nome", $busca, PDO::PARAM_STR);
+            $sql->bindValue(":email", $busca, PDO::PARAM_STR);
+            $sql->bindValue("limit", $limit, PDO::PARAM_INT);
+            $sql->bindValue("offset", $offset, PDO::PARAM_INT);
+            $sql->execute();
+            $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
-        resposta(200, true, "Registros dos clientes lidos com sucesso!", [$dados,$total]);
+            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
+            $sql->execute();
+            $total = $sql->fetch(PDO::FETCH_OBJ);
+    
+            resposta(200, true, "Registros dos clientes lidos com sucesso!", [$dados,$total]);
 
+        } else {
+
+            //READ
+            $sql = $pdo->prepare("SELECT * FROM tb_clientes LIMIT :limit OFFSET :offset");
+            $sql->bindValue('limit', $limit, PDO::PARAM_INT);
+            $sql->bindValue('offset', $offset, PDO::PARAM_INT);
+            $sql->execute();
+            $dados = $sql->fetchAll(PDO::FETCH_OBJ);
+
+            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
+            $sql->execute();
+            $total = $sql->fetch(PDO::FETCH_OBJ);
+    
+            resposta(200, true, "Registros dos clientes lidos com sucesso!", [$dados,$total]);
+
+        }
     }
 
     function requestPut($body, $pdo){
