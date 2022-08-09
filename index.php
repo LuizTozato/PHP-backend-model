@@ -112,7 +112,9 @@
             $sql->execute();
             $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
-            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
+            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes WHERE nome LIKE CONCAT( '%', :nome, '%') OR email LIKE CONCAT( '%', :email, '%')");
+            $sql->bindValue(":nome", $busca, PDO::PARAM_STR);
+            $sql->bindValue(":email", $busca, PDO::PARAM_STR);
             $sql->execute();
             $total = $sql->fetch(PDO::FETCH_OBJ);
     
