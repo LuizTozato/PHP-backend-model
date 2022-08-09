@@ -9,9 +9,9 @@
         nome              TEXT NOT NULL,
         data_nascimento   TEXT NOT NULL,
         cpf               TEXT NOT NULL,
-        celular           TEXT,
-        email             TEXT,
-        endereco          TEXT,
+        celular           TEXT NOT NULL,
+        email             TEXT NOT NULL,
+        endereco          TEXT NOT NULL,
         observacao        TEXT
     )";
 
