@@ -52,20 +52,6 @@
         if($body->id_cliente === ''){
 
             //CREATE
-            $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
-            $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
-            $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
-            $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
-            $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
-            $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
-            $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
-            
-            //controle de input inválido
-            if(!$body->nome || !$body->data_nascimento || !$body->cpf){
-                resposta(400, false, "Dados Invalidos", '');
-            }
-
-            //=======================
             //4. INSERINDO DADOS ANTI SQL INJECTION
             $sql = $pdo->prepare("INSERT INTO tb_clientes VALUES (null,?,?,?,?,?,?,?)");
 
@@ -104,17 +90,17 @@
         if($busca !== ''){
 
             //READ
-            $sql = $pdo->prepare("SELECT * FROM tb_clientes WHERE nome LIKE CONCAT( '%', :nome, '%') OR email LIKE CONCAT( '%', :email, '%') LIMIT :limit OFFSET :offset");
-            $sql->bindValue(":nome", $busca, PDO::PARAM_STR);
-            $sql->bindValue(":email", $busca, PDO::PARAM_STR);
-            $sql->bindValue("limit", $limit, PDO::PARAM_INT);
-            $sql->bindValue("offset", $offset, PDO::PARAM_INT);
+            $sql = $pdo->prepare("SELECT * FROM tb_clientes WHERE nome LIKE :nome OR email LIKE :email LIMIT :limit OFFSET :offset");
+            $sql->bindValue(":nome", "%$busca%", PDO::PARAM_STR);
+            $sql->bindValue(":email", "%$busca%", PDO::PARAM_STR);
+            $sql->bindValue(":limit", $limit, PDO::PARAM_INT);
+            $sql->bindValue(":offset", $offset, PDO::PARAM_INT);
             $sql->execute();
             $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
-            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes WHERE nome LIKE CONCAT( '%', :nome, '%') OR email LIKE CONCAT( '%', :email, '%')");
-            $sql->bindValue(":nome", $busca, PDO::PARAM_STR);
-            $sql->bindValue(":email", $busca, PDO::PARAM_STR);
+            $sql = $pdo->prepare("SELECT COUNT(id_cliente) AS total FROM tb_clientes WHERE nome LIKE :nome OR email LIKE :email");
+            $sql->bindValue(":nome", "%$busca%", PDO::PARAM_STR);
+            $sql->bindValue(":email", "%$busca%", PDO::PARAM_STR);
             $sql->execute();
             $total = $sql->fetch(PDO::FETCH_OBJ);
     
@@ -129,7 +115,7 @@
             $sql->execute();
             $dados = $sql->fetchAll(PDO::FETCH_OBJ);
 
-            $sql = $pdo->prepare("SELECT COUNT(id_cliente) FROM tb_clientes");
+            $sql = $pdo->prepare("SELECT COUNT(id_cliente) AS total FROM tb_clientes");
             $sql->execute();
             $total = $sql->fetch(PDO::FETCH_OBJ);
     
@@ -141,20 +127,6 @@
     function requestPut($body, $pdo){
 
         //UPDATE
-        $body->nome = filter_var($body->nome, FILTER_SANITIZE_STRING);
-        $body->data_nascimento = filter_var($body->data_nascimento, FILTER_SANITIZE_STRING);
-        $body->cpf = filter_var($body->cpf, FILTER_SANITIZE_STRING);
-        $body->celular = filter_var($body->celular, FILTER_SANITIZE_STRING);
-        $body->email = filter_var($body->email, FILTER_SANITIZE_STRING);
-        $body->endereco = filter_var($body->endereco, FILTER_SANITIZE_STRING);
-        $body->observacao = filter_var($body->observacao, FILTER_SANITIZE_STRING);
-        
-        //controle de input inválido
-        if(!$body->nome || !$body->data_nascimento || !$body->cpf){
-            resposta(400, false, "Dados Invalidos", '');
-        }
-
-        //=======================
         //4. ATUALIZANDO DADOS ANTI SQL INJECTION
         $sql = $pdo->prepare("UPDATE tb_clientes SET 
             nome = ?,
@@ -182,7 +154,6 @@
 
     function requestDelete($body, $pdo){
 
-        //=======================
         //DELETE
         //4. ATUALIZANDO DADOS ANTI SQL INJECTION
         $sql = $pdo->prepare("DELETE FROM tb_clientes 
